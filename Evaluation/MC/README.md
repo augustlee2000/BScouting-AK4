@@ -8,7 +8,7 @@ Loads in both RECO NANO and Scouting NANO and compares how the reco b-tagging do
 Used to find the 10%, 1%, and .1% misidentification rate of the current b-tagger
 
 # ROC_Curve.png
-Gen Match Jets to Gen Jets and finds the ROC curve for teh current b-tagger produces ROC_Curve.png (Graphs need to made pretty for publication)
+Gen Match Jets to Gen Jets and finds the ROC curve for the current b-tagger produces ROC_Curve.png (Graphs need to made pretty for publication)
 
 
 
