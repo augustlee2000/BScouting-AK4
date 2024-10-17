@@ -105,7 +105,14 @@ void MyPlugin::produce(edm::Event& event, const edm::EventSetup& setup) {
   edm::Handle<TagInfoCollection> tag_infos;
   event.getByToken(src_, tag_infos);
 
-  edm::OrphanHandle<edm::Handle<TagInfoCollection>> oh = event.put(std::move(tag_infos));
+  auto new_tag_infos = std::make_unique<TagInfoCollection>();
+
+  for (const auto& info : *tag_infos) {
+    // Process or modify `info` as needed
+    new_tag_infos->push_back(info); // Or add modified info
+}
+
+  edm::OrphanHandle<TagInfoCollection> oh = event.put(std::move(new_tag_infos));
 
   //tensorflow::Tensor input(tensorflow::DT_FLOAT, {1, static_cast<int64_t>(jetsHandle->size())});  // Adjust the shape
   tensorflow::Tensor input(tensorflow::DT_FLOAT, {1, static_cast<int64_t>(tag_infos->size())});  // Adjust the shape
@@ -126,11 +133,11 @@ void MyPlugin::produce(edm::Event& event, const edm::EventSetup& setup) {
 
   // Create a ValueMap for bTagScores and store it in the event
   std::unique_ptr<edm::ValueMap<float>> bTagScore_table(new edm::ValueMap<float>());
-  edm::ValueMap<float>::Filler filler_BTagScore_table(*BTagScore_table);
+  edm::ValueMap<float>::Filler filler_BTagScore_table(*bTagScore_table);
   filler_BTagScore_table.insert(oh, bTagScores.begin(), bTagScores.end());
   filler_BTagScore_table.fill();
   
-  event.put(std::move(bTagScores_table), "bTagScore");
+  event.put(std::move(bTagScore_table), "bTagScore");
 }
 
 DEFINE_FWK_MODULE(MyPlugin);
