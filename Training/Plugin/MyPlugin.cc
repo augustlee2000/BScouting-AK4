@@ -38,6 +38,7 @@ private:
   // a pointer to the session created by the global session cache
   typedef std::vector<reco::DeepBoostedJetTagInfo> TagInfoCollection;
   const tensorflow::Session* session_;
+  edm::EDGetTokenT<edm::View<reco::Jet>> jet_token_;
   const edm::EDGetTokenT<TagInfoCollection> src_;
 
   // Add output variable
@@ -71,8 +72,8 @@ void MyPlugin::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   desc.add<std::string>("outputTensorName", "output")->setComment("Name of the output tensor");
   desc.add<std::string>("outputTag", "bTagScore")->setComment("Name of the output branch");
   desc.add<std::string>("tf_backend", "cpu")->setComment("TensorFlow backend: 'cpu' or 'cuda'.");
-  //desc.add<edm::InputTag>("jetInputTag")->setComment("Input tag for jets.");
   desc.add<edm::InputTag>("src", edm::InputTag("pfDeepBoostedJetTagInfos"));
+  desc.add<edm::InputTag>("jets", edm::InputTag(""));
 
   
   
@@ -83,11 +84,11 @@ MyPlugin::MyPlugin(const edm::ParameterSet& config,  const tensorflow::SessionCa
     : inputTensorName_(config.getParameter<std::string>("inputTensorName")),
       outputTensorName_(config.getParameter<std::string>("outputTensorName")),
       session_(cache->getSession()),
-      //jetToken_(consumes<std::vector<Run3ScoutingPFJet>>(config.getParameter<edm::InputTag>("jetInputTag"))) { // Assume "jetInputTag" is defined in your configuration
+      jet_token_ (consumes<edm::View<reco::Jet>>(config.getParameter<edm::InputTag>("jets"))),
       src_(consumes<TagInfoCollection>(config.getParameter<edm::InputTag>("src"))){
 
   // Declare the product that this module will produce
-  produces<edm::ValueMap<int>>("bTagScore");
+  produces<edm::ValueMap<float>>("bTagScore");
 }
 
 void MyPlugin::beginJob() {}
@@ -104,37 +105,55 @@ void MyPlugin::produce(edm::Event& event, const edm::EventSetup& setup) {
   //event.getByToken(jetToken_, jetsHandle);
   edm::Handle<TagInfoCollection> tag_infos;
   event.getByToken(src_, tag_infos);
+  edm::Handle<edm::View<reco::Jet>> jets;
+  jets = event.getHandle(jet_token_);
+ 
 
-  auto new_tag_infos = std::make_unique<TagInfoCollection>();
-
-  for (const auto& info : *tag_infos) {
-    // Process or modify `info` as needed
-    new_tag_infos->push_back(info); // Or add modified info
-}
-
-  edm::OrphanHandle<TagInfoCollection> oh = event.put(std::move(new_tag_infos));
+  
 
   //tensorflow::Tensor input(tensorflow::DT_FLOAT, {1, static_cast<int64_t>(jetsHandle->size())});  // Adjust the shape
   tensorflow::Tensor input(tensorflow::DT_FLOAT, {1, static_cast<int64_t>(tag_infos->size())});  // Adjust the shape
   for (size_t i = 0; i < tag_infos->size(); i++) {
-    //const auto& jet = (*tag_infos)[i];
-    input.matrix<float>()(0, i) = float(i);
-  }
+    const auto& tag_info = (*tag_infos)[i];  // Access the tag info for this jet
+  
+    // Loop over the candidates (max 50)
+    for (size_t j = 0; j < 50; j++) {
+        if (j < tag_info.features.pfcand_etarel.size()) {  // Check if there are enough candidates
+            
+
+            // Fill the tensor with the 10 variables for each candidate
+            input.tensor<float, 3>()(i, j, 0) = features.deta();              // deta
+            input.tensor<float, 3>()(i, j, 1) = features.dphi();              // dphi
+            input.tensor<float, 3>()(i, j, 2) = features.dR();                // dR
+            input.tensor<float, 3>()(i, j, 3) = features.pt_log_nopuppi();    // pt_log_nopuppi
+            input.tensor<float, 3>()(i, j, 4) = features.e_log_nopuppi();     // e_log_nopuppi
+            input.tensor<float, 3>()(i, j, 5) = features.isHad();             // isHad
+            input.tensor<float, 3>()(i, j, 6) = features.isEG();              // isEG
+            input.tensor<float, 3>()(i, j, 7) = features.charge();            // charge
+            input.tensor<float, 3>()(i, j, 8) = features.dxy();               // dxy
+            input.tensor<float, 3>()(i, j, 9) = features.dz();                // dz
+        } else {
+            // Fill remaining slots with zeros if there are fewer than 50 candidates
+            for (int k = 0; k < 10; k++) {
+                input.tensor<float, 3>()(i, j, k) = 0.0;
+            }
+        }
+    }
+ }
 
   std::vector<tensorflow::Tensor> outputs;
   
   tensorflow::Status status = const_cast<tensorflow::Session*>(session_)->Run({{inputTensorName_, input}}, {outputTensorName_}, {}, &outputs);
 
-  const tensorflow::Tensor& output = outputs[0];
+  //const tensorflow::Tensor& output = outputs[0];
 
-  std::vector<float> bTagScores(tag_infos->size(), 0.0f);
-
- 
+  std::vector<float> bTagScores(tag_infos->size());
+  
 
   // Create a ValueMap for bTagScores and store it in the event
   std::unique_ptr<edm::ValueMap<float>> bTagScore_table(new edm::ValueMap<float>());
   edm::ValueMap<float>::Filler filler_BTagScore_table(*bTagScore_table);
-  filler_BTagScore_table.insert(oh, bTagScores.begin(), bTagScores.end());
+  filler_BTagScore_table.insert(jets, bTagScores.begin(), bTagScores.end());
   filler_BTagScore_table.fill();
   
   event.put(std::move(bTagScore_table), "bTagScore");
