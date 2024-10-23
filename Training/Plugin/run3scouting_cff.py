@@ -332,12 +332,13 @@ ak4ScoutingJetParticleNetJetTags = cms.EDProducer("BoostedJetONNXJetTagsProducer
       debugMode = cms.untracked.bool(False),
 )
 
-from PhysicsTools.NanoAOD.myPlugin_cfi import myPlugin
-ak4ScoutingRun3ParticleNetJetTags= cms.EDProducer("myPlugin",
+from PhysicsTools.NanoAOD.myPlugin_cfi import MyPlugin
+ak4ScoutingRun3ParticleNetJetTags= cms.EDProducer("MyPlugin",
       graphPath = cms.string("data/graph.pb"),
       inputTensorName = cms.string("input"),
       outputTensorName = cms.string("output"),
       src = cms.InputTag("ak4ScoutingJetParticleNetJetTagInfos"),
+      jets = cms.InputTag("ak4ScoutingJets"),
 )
 
 ak4ScoutingJetTable = cms.EDProducer("SimplePFJetFlatTableProducer",
@@ -350,7 +351,7 @@ ak4ScoutingJetTable = cms.EDProducer("SimplePFJetFlatTableProducer",
       externalVariables = cms.PSet(
          particleNet_prob_b = ExtVar(cms.InputTag('ak4ScoutingJetParticleNetJetTags:probb'), float, doc="ParticleNet probability of b", precision=10),
          particleNet_prob_notb = ExtVar(cms.InputTag('ak4ScoutingJetParticleNetJetTags:probnotb'), float, doc="ParticleNet probability of bb", precision=10),
-         ak4ScoutingRun3_btagged = ExtVar(cms.InputTag('ak4ScoutingRun3ParticleNetJetTags'), float, doc="Run3 btagging", precision=10),
+         ak4ScoutingRun3_btagged = ExtVar(cms.InputTag('ak4ScoutingRun3ParticleNetJetTags:bTagScore'), float, doc="Run3 btagging", precision=10),
       ),
       variables = cms.PSet(
          P4Vars,
