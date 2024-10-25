@@ -118,20 +118,20 @@ void MyPlugin::produce(edm::Event& event, const edm::EventSetup& setup) {
   
     // Loop over the candidates (max 50)
     for (size_t j = 0; j < 50; j++) {
-        if (j < tag_info.features.pfcand_etarel.size()) {  // Check if there are enough candidates
+        if (j < tag_info.features().pfcand_etarel().size()) {  // Check if there are enough candidates
             
 
             // Fill the tensor with the 10 variables for each candidate
-            input.tensor<float, 3>()(i, j, 0) = features.deta();              // deta
-            input.tensor<float, 3>()(i, j, 1) = features.dphi();              // dphi
-            input.tensor<float, 3>()(i, j, 2) = features.dR();                // dR
-            input.tensor<float, 3>()(i, j, 3) = features.pt_log_nopuppi();    // pt_log_nopuppi
-            input.tensor<float, 3>()(i, j, 4) = features.e_log_nopuppi();     // e_log_nopuppi
-            input.tensor<float, 3>()(i, j, 5) = features.isHad();             // isHad
-            input.tensor<float, 3>()(i, j, 6) = features.isEG();              // isEG
-            input.tensor<float, 3>()(i, j, 7) = features.charge();            // charge
-            input.tensor<float, 3>()(i, j, 8) = features.dxy();               // dxy
-            input.tensor<float, 3>()(i, j, 9) = features.dz();                // dz
+            input.tensor<float, 3>()(i, j, 0) = tag_info.features().deta();              // deta
+            input.tensor<float, 3>()(i, j, 1) = tag_info.features().dphi();              // dphi
+            input.tensor<float, 3>()(i, j, 2) = tag_info.features().dR();                // dR
+            input.tensor<float, 3>()(i, j, 3) = tag_info.features().pt_log_nopuppi();    // pt_log_nopuppi
+            input.tensor<float, 3>()(i, j, 4) = tag_info.features().e_log_nopuppi();     // e_log_nopuppi
+            input.tensor<float, 3>()(i, j, 5) = tag_info.features().isHad();             // isHad
+            input.tensor<float, 3>()(i, j, 6) = tag_info.features().isEG();              // isEG
+            input.tensor<float, 3>()(i, j, 7) = tag_info.features().charge();            // charge
+            input.tensor<float, 3>()(i, j, 8) = tag_info.features().dxy();               // dxy
+            input.tensor<float, 3>()(i, j, 9) = tag_info.features().dz();                // dz
         } else {
             // Fill remaining slots with zeros if there are fewer than 50 candidates
             for (int k = 0; k < 10; k++) {
