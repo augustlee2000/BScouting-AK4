@@ -37,7 +37,7 @@ private:
 
   // a pointer to the session created by the global session cache
   typedef std::vector<reco::DeepBoostedJetTagInfo> TagInfoCollection;
-  const tensorflow::Session* session_;
+  const tensorflow::Session* session_; comment out 
   edm::EDGetTokenT<edm::View<reco::Jet>> jet_token_;
   const edm::EDGetTokenT<TagInfoCollection> src_;
 
@@ -109,29 +109,32 @@ void MyPlugin::produce(edm::Event& event, const edm::EventSetup& setup) {
   jets = event.getHandle(jet_token_);
  
 
-  
+  std::cout << "0"<< std::endl;
 
   //tensorflow::Tensor input(tensorflow::DT_FLOAT, {1, static_cast<int64_t>(jetsHandle->size())});  // Adjust the shape
-  tensorflow::Tensor input(tensorflow::DT_FLOAT, {1, static_cast<int64_t>(tag_infos->size())});  // Adjust the shape
-  for (size_t i = 0; i < tag_infos->size(); i++) {
+  tensorflow::Tensor input(tensorflow::DT_FLOAT, {static_cast<int64_t>(jets->size()), 50, 10});  // Adjust the shape
+  for (size_t i = 0; i < jets->size(); i++) {
     const auto& tag_info = (*tag_infos)[i];  // Access the tag info for this jet
+    std::cout << "0.1"<< std::endl;
   
     // Loop over the candidates (max 50)
     for (size_t j = 0; j < 50; j++) {
         if (j < tag_info.features().get("pfcand_etarel").size()) {  // Check if there are enough candidates
+          std::cout << "0.2"<< std::endl;
             
 
             // Fill the tensor with the 10 variables for each candidate
-            input.tensor<float, 3>()(i, j, 0) = tag_info.features().get("pfcand_etarel")[j];              // deta
-            input.tensor<float, 3>()(i, j, 1) = tag_info.features().get("pfcand_phirel")[j];              // dphi
-            input.tensor<float, 3>()(i, j, 2) = tag_info.features().get("pfcand_deltaR")[j];                // dR
-            input.tensor<float, 3>()(i, j, 3) = tag_info.features().get("pfcand_pt_log_nopuppi")[j];    // pt_log_nopuppi
-            input.tensor<float, 3>()(i, j, 4) = tag_info.features().get("pfcand_e_log_nopuppi")[j];     // e_log_nopuppi
-            input.tensor<float, 3>()(i, j, 5) = tag_info.features().get("pfcand_isNeutralHad")[j];             // isHad and to figured it NeutralHad and charged Hadrong
-            input.tensor<float, 3>()(i, j, 6) = tag_info.features().get("pfcand_isEl")[j];              // isEG
-            input.tensor<float, 3>()(i, j, 7) = tag_info.features().get("pfcand_charge")[j];            // charge
-            input.tensor<float, 3>()(i, j, 8) = tag_info.features().get("pfcand_dxy")[j];               // dxy
-            input.tensor<float, 3>()(i, j, 9) = tag_info.features().get("pfcand_dz")[j];                // dz
+          input.tensor<float, 3>()(i, j, 0) = tag_info.features().get("pfcand_etarel")[j];              // deta
+          input.tensor<float, 3>()(i, j, 1) = tag_info.features().get("pfcand_phirel")[j];              // dphi
+          input.tensor<float, 3>()(i, j, 2) = tag_info.features().get("pfcand_deltaR")[j];                // dR
+          input.tensor<float, 3>()(i, j, 3) = tag_info.features().get("pfcand_pt_log_nopuppi")[j];    // pt_log_nopuppi
+          input.tensor<float, 3>()(i, j, 4) = tag_info.features().get("pfcand_e_log_nopuppi")[j];     // e_log_nopuppi
+          input.tensor<float, 3>()(i, j, 5) = tag_info.features().get("pfcand_isNeutralHad")[j];             // isHad and to figured it NeutralHad and charged Hadrong
+          input.tensor<float, 3>()(i, j, 6) = tag_info.features().get("pfcand_isEl")[j];              // isEG
+          input.tensor<float, 3>()(i, j, 7) = tag_info.features().get("pfcand_charge")[j];            // charge
+          input.tensor<float, 3>()(i, j, 8) = tag_info.features().get("pfcand_dxy")[j];               // dxy
+          input.tensor<float, 3>()(i, j, 9) = tag_info.features().get("pfcand_dz")[j];                // dz
+          std::cout << "0.3"<< std::endl;
         } else {
             // Fill remaining slots with zeros if there are fewer than 50 candidates
             for (int k = 0; k < 10; k++) {
@@ -140,14 +143,22 @@ void MyPlugin::produce(edm::Event& event, const edm::EventSetup& setup) {
         }
     }
  }
-
+  std::cout << "1"<< std::endl;
   std::vector<tensorflow::Tensor> outputs;
-  
-  tensorflow::Status status = const_cast<tensorflow::Session*>(session_)->Run({{inputTensorName_, input}}, {outputTensorName_}, {}, &outputs);
 
-  //const tensorflow::Tensor& output = outputs[0];
+  
+  // tensorflow::Status status = const_cast<tensorflow::Session*>(session_)->Run({{inputTensorName_, input}}, {outputTensorName_}, {}, &outputs);
+  std::cout << "2"<< std::endl;
+
+  tensorflow::run(session_, {{inputTensorName_, input}}, {outputTensorName_}, &outputs);
+
+  // print the output
+  std::cout << " -> " << outputs[0].matrix<float>()(0, 0) << std::endl << std::endl;
+
+  const tensorflow::Tensor& output = outputs[0]; 
 
   std::vector<float> bTagScores(tag_infos->size());
+  std::cout << "3"<< std::endl;
   
 
   // Create a ValueMap for bTagScores and store it in the event
