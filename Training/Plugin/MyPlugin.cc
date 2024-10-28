@@ -113,7 +113,8 @@ void MyPlugin::produce(edm::Event& event, const edm::EventSetup& setup) {
 
   //tensorflow::Tensor input(tensorflow::DT_FLOAT, {1, static_cast<int64_t>(jetsHandle->size())});  // Adjust the shape
   tensorflow::Tensor input(tensorflow::DT_FLOAT, {static_cast<int64_t>(jets->size()), 50, 10});
-  tensorflow::Tensor mask(tensorflow::DT_FLOAT, {static_cast<int64_t>(jets->size()), 50, 1});  // Adjust the shape
+  tensorflow::Tensor mask(tensorflow::DT_FLOAT, {static_cast<int64_t>(jets->size()), 50, 1});
+  tensorflow::Tensor points(tensorflow::DT_FLOAT, {static_cast<int64_t>(jets->size()), 50, 2});  // Adjust the shape
   for (size_t i = 0; i < jets->size(); i++) {
     const auto& tag_info = (*tag_infos)[i];  // Access the tag info for this jet
     std::cout << "0.1"<< std::endl;
@@ -126,6 +127,8 @@ void MyPlugin::produce(edm::Event& event, const edm::EventSetup& setup) {
 
             // Fill the tensor with the 10 variables for each candidate
           mask.tensor<float, 3>()(i, j, 0) = 1.0;  // Set mask value to 1 for valid candidates
+          points.tensor<float, 3>()(i, j, 0) = tag_info.features().get("pfcand_etarel")[j];  // pt
+          points.tensor<float, 3>()(i, j, 1) = tag_info.features().get("pfcand_phirel")[j]; // eta
           input.tensor<float, 3>()(i, j, 0) = tag_info.features().get("pfcand_etarel")[j];              // deta
           input.tensor<float, 3>()(i, j, 1) = tag_info.features().get("pfcand_phirel")[j];              // dphi
           input.tensor<float, 3>()(i, j, 2) = tag_info.features().get("pfcand_deltaR")[j];                // dR
@@ -153,8 +156,8 @@ void MyPlugin::produce(edm::Event& event, const edm::EventSetup& setup) {
   std::cout << "2"<< std::endl;
 
 
-  // tensorflow::run(session_, {{inputTensorName_, input}}, {{"mask", mask}}, {outputTensorName_}, &outputs);
-  tensorflow::run(session_, {{inputTensorName_, input}}, {outputTensorName_}, &outputs);
+  tensorflow::run(session_, {{inputTensorName_, input}, {"mask", mask}, {"points", points}}, {outputTensorName_}, &outputs);
+  //tensorflow::run(session_, {{inputTensorName_, input}}, {outputTensorName_}, &outputs);
 
   // print the output
   std::cout << " -> " << outputs[0].matrix<float>()(0, 0) << std::endl << std::endl;
