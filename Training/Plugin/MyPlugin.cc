@@ -99,7 +99,6 @@ void MyPlugin::endJob() {
 }
 
 void MyPlugin::produce(edm::Event& event, const edm::EventSetup& setup) {
-  std::cout << "starting"<< std::endl;
   // define a tensor and fill it with range(10)
   //edm::Handle<std::vector<Run3ScoutingPFJet>> jetsHandle;
   //event.getByToken(jetToken_, jetsHandle);
@@ -107,9 +106,7 @@ void MyPlugin::produce(edm::Event& event, const edm::EventSetup& setup) {
   event.getByToken(src_, tag_infos);
   edm::Handle<edm::View<reco::Jet>> jets;
   jets = event.getHandle(jet_token_);
- 
 
-  std::cout << "0"<< std::endl;
 
   //tensorflow::Tensor input(tensorflow::DT_FLOAT, {1, static_cast<int64_t>(jetsHandle->size())});  // Adjust the shape
   tensorflow::Tensor input(tensorflow::DT_FLOAT, {static_cast<int64_t>(jets->size()), 50, 10});
@@ -117,12 +114,10 @@ void MyPlugin::produce(edm::Event& event, const edm::EventSetup& setup) {
   tensorflow::Tensor points(tensorflow::DT_FLOAT, {static_cast<int64_t>(jets->size()), 50, 2});  // Adjust the shape
   for (size_t i = 0; i < jets->size(); i++) {
     const auto& tag_info = (*tag_infos)[i];  // Access the tag info for this jet
-    std::cout << "0.1"<< std::endl;
   
     // Loop over the candidates (max 50)
     for (size_t j = 0; j < 50; j++) {
         if (j < tag_info.features().get("pfcand_etarel").size()) {  // Check if there are enough candidates
-          std::cout << "0.2"<< std::endl;
             
 
             // Fill the tensor with the 10 variables for each candidate
@@ -139,7 +134,6 @@ void MyPlugin::produce(edm::Event& event, const edm::EventSetup& setup) {
           input.tensor<float, 3>()(i, j, 7) = tag_info.features().get("pfcand_charge")[j];            // charge
           input.tensor<float, 3>()(i, j, 8) = tag_info.features().get("pfcand_dxy")[j];               // dxy
           input.tensor<float, 3>()(i, j, 9) = tag_info.features().get("pfcand_dz")[j];                // dz
-          std::cout << "0.3"<< std::endl;
         } else {
             // Fill remaining slots with zeros if there are fewer than 50 candidates
             for (int k = 0; k < 10; k++) {
@@ -148,24 +142,33 @@ void MyPlugin::produce(edm::Event& event, const edm::EventSetup& setup) {
         }
     }
  }
-  std::cout << "1"<< std::endl;
   std::vector<tensorflow::Tensor> outputs;
 
   
   // tensorflow::Status status = const_cast<tensorflow::Session*>(session_)->Run({{inputTensorName_, input}}, {outputTensorName_}, {}, &outputs);
-  std::cout << "2"<< std::endl;
+  std::vector<float> bTagScores(jets->size());
+  if (jets->size() > 0) {
+    tensorflow::run(session_, {{inputTensorName_, input}, {"mask", mask}, {"points", points}}, {outputTensorName_}, &outputs);
+    for (size_t a = 0; a < jets->size(); a++) {
+      std::cout << "output: " << outputs[0].matrix<float>()(a, 0) << std::endl;
+      bTagScores[a] = outputs[0].matrix<float>()(a, 0);
+
+    }
+  }
 
 
-  tensorflow::run(session_, {{inputTensorName_, input}, {"mask", mask}, {"points", points}}, {outputTensorName_}, &outputs);
+  /* tensorflow::run(session_, {{inputTensorName_, input}, {"mask", mask}, {"points", points}}, {outputTensorName_}, &outputs);
   //tensorflow::run(session_, {{inputTensorName_, input}}, {outputTensorName_}, &outputs);
+  for (size_t a = 0; a < jets->size(); a++) {
+    std::cout << "output: " << outputs[0].matrix<float>()(a, 0) << std::endl;
 
+  }
   // print the output
-  std::cout << " -> " << outputs[0].matrix<float>()(0, 0) << std::endl << std::endl;
+  std::cout << jets->size() << " -> " << outputs[0].matrix<float>()(0, 0) << std::endl << std::endl;
 
   const tensorflow::Tensor& output = outputs[0]; 
 
-  std::vector<float> bTagScores(tag_infos->size());
-  std::cout << "3"<< std::endl;
+  std::vector<float> bTagScores(tag_infos->size()); */
   
 
   // Create a ValueMap for bTagScores and store it in the event
