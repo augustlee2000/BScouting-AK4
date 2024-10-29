@@ -335,8 +335,8 @@ ak4ScoutingJetParticleNetJetTags = cms.EDProducer("BoostedJetONNXJetTagsProducer
 from PhysicsTools.NanoAOD.myPlugin_cfi import MyPlugin
 ak4ScoutingRun3ParticleNetJetTags= cms.EDProducer("MyPlugin",
       graphPath = cms.string("data/graph.pb"),
-      inputTensorName = cms.string("input"),
-      outputTensorName = cms.string("output"),
+      inputTensorName = cms.string("features"),
+      outputTensorName = cms.string("ParticleNet/dense_1/Softmax"),
       src = cms.InputTag("ak4ScoutingJetParticleNetJetTagInfos"),
       jets = cms.InputTag("ak4ScoutingJets"),
 )
@@ -531,3 +531,4 @@ ak8ScoutingJetExtTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
       ),
       variables = cms.PSet(),
   )
+
