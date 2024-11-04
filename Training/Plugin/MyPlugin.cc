@@ -129,8 +129,20 @@ void MyPlugin::produce(edm::Event& event, const edm::EventSetup& setup) {
           input.tensor<float, 3>()(i, j, 2) = tag_info.features().get("pfcand_deltaR")[j];                // dR
           input.tensor<float, 3>()(i, j, 3) = tag_info.features().get("pfcand_pt_log_nopuppi")[j];    // pt_log_nopuppi
           input.tensor<float, 3>()(i, j, 4) = tag_info.features().get("pfcand_e_log_nopuppi")[j];     // e_log_nopuppi
-          input.tensor<float, 3>()(i, j, 5) = tag_info.features().get("pfcand_isNeutralHad")[j];             // isHad and to figured it NeutralHad and charged Hadrong
-          input.tensor<float, 3>()(i, j, 6) = tag_info.features().get("pfcand_isEl")[j];              // isEG
+          if (tag_info.features().get("pfcand_isNeutralHad")[j] == 1 || tag_info.features().get("pfcand_isChargedHad")[j] == 1) {
+            input.tensor<float, 3>()(i, j, 5) = 1;
+            }
+          else {
+            input.tensor<float, 3>()(i, j, 5) = 0;
+          }
+          //input.tensor<float, 3>()(i, j, 5) = tag_info.features().get("pfcand_isNeutralHad")[j];             // isHad and to figured it NeutralHad and charged Hadrong
+          if (tag_info.features().get("pfcand_isEl")[j] == 1 || tag_info.features().get("pfcand_isGamma")[j] == 1) {
+            input.tensor<float, 3>()(i, j, 6) = 1;
+            }
+          else {
+            input.tensor<float, 3>()(i, j, 6) = 0;
+          }
+          //input.tensor<float, 3>()(i, j, 6) = tag_info.features().get("pfcand_isEl")[j];              // isEG
           input.tensor<float, 3>()(i, j, 7) = tag_info.features().get("pfcand_charge")[j];            // charge
           input.tensor<float, 3>()(i, j, 8) = tag_info.features().get("pfcand_dxy")[j];               // dxy
           input.tensor<float, 3>()(i, j, 9) = tag_info.features().get("pfcand_dz")[j];                // dz
@@ -150,8 +162,7 @@ void MyPlugin::produce(edm::Event& event, const edm::EventSetup& setup) {
   if (jets->size() > 0) {
     tensorflow::run(session_, {{inputTensorName_, input}, {"mask", mask}, {"points", points}}, {outputTensorName_}, &outputs);
     for (size_t a = 0; a < jets->size(); a++) {
-      std::cout << "output: " << outputs[0].matrix<float>()(a, 0) << std::endl;
-      bTagScores[a] = outputs[0].matrix<float>()(a, 0);
+      bTagScores[a] = outputs[0].matrix<float>()(a, 1);
 
     }
   }
